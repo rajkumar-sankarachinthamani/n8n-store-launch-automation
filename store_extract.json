@@ -1,0 +1,296 @@
+{
+  "name": "store_extract",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "\"Write a Mongo query that joins two collections, TaggingSummary and Location and return  siteNumber from Location collection, corresponding location_description along with the minimum date, the minimum date is coming out from TagginSummary collection the field name is 'date'. Assume the tables share a common aggregate key and the key is location_epc from Location collection and siteEPC from TaggedSummary. Output only the Mongo query.\"",
+        "options": {
+          "systemMessage": "You are an AI agent that converts natural-language questions into valid MongoDB queries.\nRules:\n- If the user asks to join two collections, output a MongoDB aggregation pipeline.\n- Always output:\n  {\n    \"Collection\": \"<base_collection>\",\n    \"pipeline\": [ ... ]\n  }\n- Use $lookup for joins.\n- Use $unwind if the join returns arrays.\n- Never output SQL. Convert SQL join intent into MongoDB $lookup.\n-Always output a valid MongoDB filter object.\n- Never invent fields that do not exist.\n- Use only JSON-compatible MongoDB syntax.\n- Detect all date values.\n- Determine the earliest (minimum) date.\n- When generating MongoDB aggregation pipelines, always convert numeric timestamps to Date using $toDate before applying $dateToString. Example:\n{ $dateToString: { format: '%m/%d/%Y', date: { $toDate: <value> } } }.”\n-exclude _id from project\n-do not Hallucinate your response, strict to the original request.\nDo not add comments in the output.\n- Use that formatted date in your final answer.\n- If the question asks for ranges, use $gt, $lt, $gte, $lte.\n- If the question asks for multiple conditions, combine them with $and.\n- Output ONLY the query object. No explanation.\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1152,
+        16
+      ],
+      "id": "01222e8e-1531-4458-82d7-0133d7c03d66",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 6,
+              "triggerAtMinute": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1376,
+        112
+      ],
+      "id": "6157d817-8fd8-4ef5-953a-9ffd8fb4e18b",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -1136,
+        240
+      ],
+      "id": "c00ee13f-3b25-4062-8df8-c0ef92d05ae5",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Z9mt2QfMHd6NlnLz",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "aggregate",
+        "collection": "={{ $json.collection }}",
+        "query": "={{ $json.pipeline.toJsonString() }}"
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        -672,
+        16
+      ],
+      "id": "5ede1c8b-a037-4a42-a73b-3b8065f9f64e",
+      "name": "Aggregate documents",
+      "alwaysOutputData": false,
+      "credentials": {
+        "mongoDb": {
+          "id": "NFyeZ0LlkZXyLjhm",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Get the first incoming item from AI Agent\nconst item = $json.output;\n\n// Clone to avoid mutating original\nlet raw = item;\n\n// If the AI Agent output is a string (code fenced), clean and parse it\nif (typeof raw === 'string') {\n  const cleaned = raw\n    .replace(/```json/gi, '')\n    .replace(/```/g, '')\n    .trim();\n  //console.log(\"cleaned value:\" + cleaned);\n  try {\n    raw = JSON.parse(cleaned);\n  } catch (err) {\n    throw new Error(\"AI Agent output is not valid JSON after removing code fences.\");\n  }\n}\nconsole.log(raw);\n// Validate structure\nif (!raw || typeof raw !== 'object') {\n  throw new Error(\"AI Agent output is not an object.\");\n}\n\nif (!raw.pipeline || !Array.isArray(raw.pipeline)) {\n  throw new Error(\"Missing or invalid 'pipeline' field (must be array).\");\n}\n//console.log(raw.collection);\n//console.log(raw.pipeline);\nconst returnValue = {\n    json: {\n      collection: raw.Collection,\n      pipeline: raw.pipeline\n    }\n  };\n// ✅ IMPORTANT: json MUST be an object\nreturn returnValue;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -848,
+        16
+      ],
+      "id": "4b283535-b098-451d-b2b3-ac3f79a27311",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are an AI email formatter. Convert the provided summary and table into a clean, professional HTML email.\n\nRequirements:\n- Start with:\n  \"Hey Everyone<br><br>Good morning! Hope you had an amazing weekend.<br>Sharing the store launch weekly report for the last whole week.\"\n- Use <h2> or <h3> for section headers.\n- Use proper HTML tables (<table>, <tr>, <th>, <td>) for the tabular data.\n- Use the EXACT site count provided below. Do NOT recalculate or infer it.\n- Do NOT attempt to parse or count rows from the table.\n- Do NOT add backticks or ```html.\n- Output only valid HTML.\n\nSummary:\n- Total sites this week: {{ $json.siteCount }}\n\nTable:\n{{ $json.emailBody }}\n\nClosing:\n\"Thanks,<br>Regards,<br><strong>Divya</strong><br>SaaS Operation Manager<br>MyAgent\"\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.1,
+          "topP": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        -368,
+        240
+      ],
+      "id": "31e09151-f6b6-4f3a-8e70-7d5651304de4",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Z9mt2QfMHd6NlnLz",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combine all MongoDB items into a single array under \"data\"\nconst items = $input.all();\n\n// Extract only the JSON payloads (your schema fields)\nconst combined = items.map(i => i.json);\n\n// Return ONE item with the entire dataset\nreturn [\n  {\n    json: {\n      data: combined\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        16
+      ],
+      "id": "120ac850-c71d-4e26-9db7-8679c4b0fdac",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.first().json.data.map(item => item);\n// Count only data rows (header is not included here)\n\nconst siteCount = rows.length - 1;\nconst headers = Object.keys(rows[0]);\n\nlet table = headers.join('\\t') + '\\n';\n//const count = rows.length;\n\nfor (const row of rows) {\n  table += headers.map(h => row[h]).join('\\t') + '\\n';\n}\n\nreturn [\n  {\n    json: {\n      emailBody: `Here is your MongoDB data:\\n\\n${table}`,\n      siteCount\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        16
+      ],
+      "id": "b6e19d45-92d5-4610-8e9c-9ea09d1ff383",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "sendTo": "subramonian.divya@gmail.com",
+        "subject": "Store Launch Weekly report",
+        "message": "={{ $json.output[0].content[0].text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -48,
+        224
+      ],
+      "id": "067fd997-5fcb-4fd0-a29b-a28ff676c47d",
+      "name": "Send a message",
+      "webhookId": "c4305aa5-a56e-498e-974b-409eff09e549",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "n4sZcYOiR2fbKe5l",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Aggregate documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate documents": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "f12d4d01-f75e-4daa-a51b-f98461ff1557",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b553ca75431d2aec9c5605734b65f0bb43d54aff940ba2090e74b24beb3b2e03"
+  },
+  "id": "7NNINzOinRerQ9hV",
+  "tags": []
+}
