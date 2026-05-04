@@ -1,4 +1,4 @@
-# n8n Store Launch Automation
+# n8n Store Launch Automation Report
 
 An n8n workflow that automates weekly **Store Launch** reporting by querying MongoDB, formatting results with AI, and delivering a polished HTML email via Gmail.
 
