@@ -4,6 +4,10 @@ An n8n workflow that automates weekly **Store Launch** reporting by querying Mon
 
 ---
 
+## n8n Workflow
+<img width="1582" height="542" alt="image" src="https://github.com/user-attachments/assets/09a0d37d-a141-45ef-884d-bc014635e8e0" />
+
+
 ## Overview
 
 This workflow runs on a **weekly schedule** and performs the following end-to-end pipeline:
@@ -179,8 +183,7 @@ n8n-store-launch-automation/
 
 > **Important:** This workflow file contains **credential reference IDs** (not secrets). You must configure your own credentials in n8n after import. Never commit actual API keys or passwords.
 
-##n8n Workflow Screen shot
-<img width="1582" height="542" alt="image" src="https://github.com/user-attachments/assets/5479a056-ccfa-4478-a85c-c94753bfc249" />
+
 
 ---
 
