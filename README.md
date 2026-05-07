@@ -179,6 +179,9 @@ n8n-store-launch-automation/
 
 > **Important:** This workflow file contains **credential reference IDs** (not secrets). You must configure your own credentials in n8n after import. Never commit actual API keys or passwords.
 
+##n8n Workflow Screen shot
+<img width="1582" height="542" alt="image" src="https://github.com/user-attachments/assets/5479a056-ccfa-4478-a85c-c94753bfc249" />
+
 ---
 
 ## License
